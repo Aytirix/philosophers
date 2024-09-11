@@ -1,11 +1,12 @@
-NAME = Philosophers
+NAME = philo
 OBJDIR = objets
 SRC = Philosophers.c \
+	mini_lib.c \
       tools.c
 
 OBJ = $(addprefix $(OBJDIR)/,$(SRC:.c=.o))
 CC = gcc
-FLAGS = -g -fsanitize=address #-Wall -Wextra -Werror
+FLAGS = -g3 -fsanitize=address -Wall -Wextra -Werror
 
 # Colors
 YELLOW = \033[0;33m

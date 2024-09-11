@@ -1,24 +1,40 @@
 {
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "C/C++ Runner: Debug Session",
-      "type": "cppdbg",
-      "request": "launch",
-      "args": [],
-      "stopAtEntry": false,
-      "externalConsole": false,
-      "cwd": "/home/theo/Documents/cursus/philosophers",
-      "program": "/home/theo/Documents/cursus/philosophers/build/Debug/outDebug",
-      "MIMode": "gdb",
-      "miDebuggerPath": "gdb",
-      "setupCommands": [
-        {
-          "description": "Enable pretty-printing for gdb",
-          "text": "-enable-pretty-printing",
-          "ignoreFailures": true
-        }
-      ]
-    }
-  ]
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "C/C++ Runner: Debug Session",
+			"type": "cppdbg",
+			"request": "launch",
+			"args": [
+				"1",
+				"5",
+				"200",
+				"200",
+			],
+			"stopAtEntry": false,
+			"externalConsole": false,
+			"cwd": "/home/theo/Documents/cursus/philosophers/philo/",
+			"program": "/home/theo/Documents/cursus/philosophers/philo/Philosophers",
+			"MIMode": "gdb",
+			"miDebuggerPath": "gdb",
+			"setupCommands": [
+				{
+					"description": "Enable pretty-printing for gdb",
+					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				},
+				// {
+				// 	"description": "Follow child processes",
+				// 	"text": "set follow-fork-mode child",
+				// 	"ignoreFailures": true
+				// },
+				// {
+				// 	"description": "Continue execution after child exits",
+				// 	"text": "set detach-on-fork on",
+				// 	"ignoreFailures": true
+				// }
+			],
+			"preLaunchTask": "build"
+		},
+	]
 }

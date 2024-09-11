@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Philosophers.h                                     :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: thmouty <theo@student.42.fr>               +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2024/09/11 14:55:54 by thmouty           #+#    #+#             */
+/*   Updated: 2024/09/11 14:56:39 by thmouty          ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #ifndef PHILOSOPHERS_H
 # define PHILOSOPHERS_H
 
@@ -9,11 +21,11 @@
 # include <sys/time.h>
 # include <unistd.h>
 
-# define msg_fork "%lld %d has taken a fork\n"
-# define msg_eat "%lld %d is eating\n"
-# define msg_sleep "%lld %d is sleeping\n"
-# define msg_think "%lld %d is thinking\n"
-# define msg_dead "%lld %d died\n"
+# define MSG_FORK 	"%lld %d has taken a fork\n"
+# define MSG_EAT 	"%lld %d is eating\n"
+# define MSG_SLEEP	"%lld %d is sleeping\n"
+# define MSG_THINK	"%lld %d is thinking\n"
+# define MSG_DEAD	"%lld %d died\n"
 
 typedef struct s_tools
 {
@@ -27,6 +39,7 @@ typedef struct s_tools
 	pthread_mutex_t	print;
 	pthread_mutex_t	*forks;
 	struct s_phil	*phils;
+	pthread_t		check;
 }					t_tools;
 
 typedef struct s_phil
@@ -39,16 +52,17 @@ typedef struct s_phil
 	t_tools			*tools;
 }					t_phil;
 
-// Philosophers.c
-void				stop_all_threads(t_tools *tools);
-void				*phil_life(void *ptr);
-
 // mini_lib.c
+long long			get_time(void);
+int					print_msg(t_phil *phil, char *msg, int dead);
 int					ft_atoi(const char *nptr);
+void				*ft_calloc(size_t nmemb, size_t size);
 
 // tools.c
 int					phil_init(int ac, char **av, t_tools *tools);
 int					phil_create(t_tools *tools);
 void				phil_free(t_tools *tools);
+int					ft_usleep(long long time, t_phil *phil);
+int					custom_mutex_lock(pthread_mutex_t *fork, t_phil *phil);
 
 #endif

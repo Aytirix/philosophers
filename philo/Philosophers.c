@@ -1,41 +1,37 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Philosophers.c                                     :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: thmouty <theo@student.42.fr>               +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2024/09/11 14:55:54 by thmouty           #+#    #+#             */
+/*   Updated: 2024/09/11 14:56:39 by thmouty          ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
 #include "Philosophers.h"
 
-long long	get_time(void)
+static int	choose_fork(t_phil *phil)
 {
-	struct timeval	tv;
-
-	gettimeofday(&tv, NULL);
-	return ((tv.tv_sec * 1000) + (tv.tv_usec / 1000));
-}
-
-void	print_msg(t_phil *phil, char *msg)
-{
-	pthread_mutex_lock(&phil->tools->print);
-	if (phil->tools->stop)
-		return ;
-	if (msg == msg_dead)
-		phil->tools->stop = 1;
-	printf(msg, get_time() - phil->tools->start, phil->id + 1);
-	pthread_mutex_unlock(&phil->tools->print);
-}
-
-void	ft_usleep(long long time, t_phil *phil)
-{
-	long long timee = get_time() - phil->last_eat;
-	while (0 < time)
+	if (phil->id == phil->tools->nb_phil - 1)
 	{
-		if (!phil->tools->stop && timee > phil->tools->time_to_die)
-		{
-			printf("diff %lld\n", timee);
-			print_msg(phil, msg_dead);
-			return ;
-		}
-		usleep(100);
-		time -= 100;
+		if (custom_mutex_lock(&phil->tools->forks[phil->id], phil)
+			|| custom_mutex_lock(&phil->tools->forks[(phil->id + 1)
+					% phil->tools->nb_phil], phil))
+			return (1);
 	}
+	else
+	{
+		if (custom_mutex_lock(&phil->tools->forks[(phil->id + 1)
+					% phil->tools->nb_phil], phil)
+			|| custom_mutex_lock(&phil->tools->forks[phil->id], phil))
+			return (1);
+	}
+	return (0);
 }
-void	*phil_life(void *ptr)
+
+static void	*phil_life(void *ptr)
 {
 	t_phil	*phil;
 
@@ -43,36 +39,54 @@ void	*phil_life(void *ptr)
 	phil->last_eat = get_time();
 	while (!phil->tools->stop)
 	{
-		print_msg(phil, msg_think);
-		ft_usleep(phil->tools->time_to_sleep * 1000, phil);
-		if (phil->tools->stop)
+		print_msg(phil, MSG_THINK, 0);
+		if (phil->tools->stop || choose_fork(phil))
 			break ;
-		pthread_mutex_lock(&phil->tools->forks[phil->id]);
-		print_msg(phil, msg_fork);
-		pthread_mutex_lock(&phil->tools->forks[(phil->id + 1)
-			% phil->tools->nb_phil]);
-		print_msg(phil, msg_fork);
-		print_msg(phil, msg_eat);
+		print_msg(phil, MSG_EAT, 0);
 		phil->last_eat = get_time();
-		ft_usleep(phil->tools->time_to_eat * 1000, phil);
+		if (ft_usleep(phil->tools->time_to_eat, phil))
+			break ;
 		phil->eat_count++;
 		pthread_mutex_unlock(&phil->tools->forks[phil->id]);
 		pthread_mutex_unlock(&phil->tools->forks[(phil->id + 1)
 			% phil->tools->nb_phil]);
 		if (phil->tools->stop)
 			break ;
-		print_msg(phil, msg_sleep);
-		ft_usleep(phil->tools->time_to_sleep * 1000, phil);
+		print_msg(phil, MSG_SLEEP, 0);
+		if (ft_usleep(phil->tools->time_to_sleep, phil))
+			break ;
 	}
 	return (NULL);
 }
 
-void	create_threads(t_tools *tools)
-{
-	int			i;
-	pthread_t	death_thread;
+static void	*check_thread(void *ptr)
 
-	i = 0;
+{
+	t_tools	*tools;
+	int		i;
+
+	tools = (t_tools *)ptr;
+	while (!tools->stop)
+	{
+		usleep(100);
+		i = 0;
+		while (i < tools->nb_phil && !tools->stop)
+		{
+			if (tools->phils[i].eat_count < tools->nb_must_eat)
+				break ;
+			i++;
+		}
+		if (i == tools->nb_phil)
+			tools->stop = 1;
+	}
+	return (NULL);
+}
+
+static void	create_threads(t_tools *tools, int tmp)
+{
+	int	i;
+
+	i = tmp;
 	while (i < tools->nb_phil)
 	{
 		if (pthread_create(&tools->phils[i].thread, NULL, phil_life,
@@ -82,16 +96,17 @@ void	create_threads(t_tools *tools)
 			return ;
 		}
 		else
-			usleep(25 * 1000);
-		i++;
+			usleep(100);
+		i += 2;
 	}
-	i = 0;
+	if (tmp == 0)
+		create_threads(tools, 1);
 }
 
 int	main(int ac, char **av)
 {
 	t_tools	tools;
-	int i;
+	int		i;
 
 	if (phil_init(ac, av, &tools))
 	{
@@ -100,13 +115,17 @@ int	main(int ac, char **av)
 		return (1);
 	}
 	tools.start = get_time();
-	create_threads(&tools);
+	create_threads(&tools, 0);
+	if (pthread_create(&tools.check, NULL, check_thread, &tools) != 0)
+		printf("Erreur lors de la création du thread de vérification\n");
 	i = 0;
 	while (i < tools.nb_phil)
 	{
 		pthread_join(tools.phils[i].thread, NULL);
 		i++;
 	}
+	tools.stop = 1;
+	pthread_join(tools.check, NULL);
 	phil_free(&tools);
 	return (0);
 }
