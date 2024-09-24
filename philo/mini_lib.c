@@ -75,3 +75,20 @@ void	*ft_calloc(size_t nmemb, size_t size)
 		((char *)s)[i++] = 0;
 	return (s);
 }
+
+void	init_thread(t_tools *tools)
+{
+	if (tools->nb_must_eat != -1 && pthread_create(&tools->check, NULL,
+			check_thread, tools) != 0)
+	{
+		printf("Erreur lors de la création du thread de vérification\n");
+		phil_free(tools);
+		exit(1);
+	}
+	if (pthread_create(&tools->check_death, NULL, check_dead, tools) != 0)
+	{
+		printf("Erreur lors de la création du thread de vérification\n");
+		phil_free(tools);
+		exit(1);
+	}
+}

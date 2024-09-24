@@ -14,20 +14,22 @@
 
 static int	choose_fork(t_phil *phil)
 {
-	if (phil->id == phil->tools->nb_phil - 1)
+	pthread_mutex_t	*left_fork;
+	pthread_mutex_t	*right_fork;
+
+	if (phil->id == phil->tools->nb_phil - 1 && phil->tools->nb_phil % 2 == 0)
 	{
-		if (custom_mutex_lock(&phil->tools->forks[phil->id], phil)
-			|| custom_mutex_lock(&phil->tools->forks[(phil->id + 1)
-					% phil->tools->nb_phil], phil))
-			return (1);
+		right_fork = &phil->tools->forks[phil->id];
+		left_fork = &phil->tools->forks[(phil->id + 1) % phil->tools->nb_phil];
 	}
 	else
 	{
-		if (custom_mutex_lock(&phil->tools->forks[(phil->id + 1)
-					% phil->tools->nb_phil], phil)
-			|| custom_mutex_lock(&phil->tools->forks[phil->id], phil))
-			return (1);
+		right_fork = &phil->tools->forks[(phil->id + 1) % phil->tools->nb_phil];
+		left_fork = &phil->tools->forks[phil->id];
 	}
+	if (pthread_mutex_lock(left_fork) != 0
+		|| pthread_mutex_lock(right_fork) != 0)
+		return (1);
 	return (0);
 }
 
@@ -59,7 +61,7 @@ static void	*phil_life(void *ptr)
 	return (NULL);
 }
 
-static void	*check_thread(void *ptr)
+void	*check_thread(void *ptr)
 
 {
 	t_tools	*tools;
@@ -95,8 +97,7 @@ static void	create_threads(t_tools *tools, int tmp)
 			printf("Erreur lors de la création des threads\n");
 			return ;
 		}
-		else
-			usleep(100);
+		usleep(100);
 		i += 2;
 	}
 	if (tmp == 0)
@@ -108,24 +109,25 @@ int	main(int ac, char **av)
 	t_tools	tools;
 	int		i;
 
-	if (phil_init(ac, av, &tools))
+	i = phil_init(ac, av, &tools);
+	if (i)
 	{
-		printf("Erreur lors de l'initialisation des philosophes\n");
+		if (i == 1)
+			printf("Erreur lors de l'initialisation des philosophes\n");
 		phil_free(&tools);
 		return (1);
 	}
 	tools.start = get_time();
 	create_threads(&tools, 0);
-	if (pthread_create(&tools.check, NULL, check_thread, &tools) != 0)
-		printf("Erreur lors de la création du thread de vérification\n");
-	i = 0;
-	while (i < tools.nb_phil)
-	{
-		pthread_join(tools.phils[i].thread, NULL);
-		i++;
-	}
-	tools.stop = 1;
-	pthread_join(tools.check, NULL);
+	init_thread(&tools);
+	i = -1;
+	while (!tools.stop)
+		usleep(10000);
+	while (++i < tools.nb_phil)
+		pthread_detach(tools.phils[i].thread);
+	if (tools.nb_must_eat > 0)
+		pthread_join(tools.check, NULL);
+	pthread_join(tools.check_death, NULL);
 	phil_free(&tools);
 	return (0);
 }

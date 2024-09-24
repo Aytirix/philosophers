@@ -40,29 +40,33 @@ typedef struct s_tools
 	pthread_mutex_t	*forks;
 	struct s_phil	*phils;
 	pthread_t		check;
+	pthread_t		check_death;
 }					t_tools;
 
 typedef struct s_phil
 {
 	pthread_t		thread;
-	int				running;
 	int				id;
 	int				eat_count;
 	long long		last_eat;
 	t_tools			*tools;
 }					t_phil;
 
+// Philosophers.c
+void				*check_thread(void *ptr);
+
 // mini_lib.c
 long long			get_time(void);
 int					print_msg(t_phil *phil, char *msg, int dead);
 int					ft_atoi(const char *nptr);
 void				*ft_calloc(size_t nmemb, size_t size);
+void				init_thread(t_tools *tools);
 
 // tools.c
 int					phil_init(int ac, char **av, t_tools *tools);
 int					phil_create(t_tools *tools);
 void				phil_free(t_tools *tools);
 int					ft_usleep(long long time, t_phil *phil);
-int					custom_mutex_lock(pthread_mutex_t *fork, t_phil *phil);
+void				*check_dead(void *ptr);
 
 #endif

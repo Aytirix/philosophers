@@ -23,12 +23,15 @@ int	phil_init(int ac, char **av, t_tools *tools)
 	tools->time_to_die = ft_atoi(av[2]);
 	tools->time_to_eat = ft_atoi(av[3]);
 	tools->time_to_sleep = ft_atoi(av[4]);
-	tools->nb_must_eat = INT_MAX;
 	tools->forks = NULL;
 	tools->phils = NULL;
 	tools->stop = 0;
 	if (ac == 6)
 		tools->nb_must_eat = ft_atoi(av[5]);
+	if (ac == 6 && tools->nb_must_eat <= 0)
+		return (2);
+	if (ac == 5)
+		tools->nb_must_eat = -1;
 	if (pthread_mutex_init(&tools->print, NULL) != 0)
 		return (1);
 	if (tools->nb_phil <= 0 || tools->time_to_die <= 0
@@ -58,7 +61,6 @@ int	phil_create(t_tools *tools)
 		tools->phils[i].eat_count = 0;
 		tools->phils[i].last_eat = 0;
 		tools->phils[i].tools = tools;
-		tools->phils[i].running = 1;
 	}
 	return (0);
 }
@@ -94,7 +96,8 @@ int	ft_usleep(long long time, t_phil *phil)
 			return (1);
 		else if (timee > 0)
 		{
-			return (print_msg(phil, MSG_DEAD, 1));
+			print_msg(phil, MSG_DEAD, 1);
+			return (1);
 		}
 		usleep(100);
 		tmp = get_time();
@@ -102,22 +105,24 @@ int	ft_usleep(long long time, t_phil *phil)
 	return (0);
 }
 
-int	custom_mutex_lock(pthread_mutex_t *fork, t_phil *phil)
+void	*check_dead(void *ptr)
 {
-	long long	timee;
+	int		i;
+	t_tools	*tools;
 
-	while (pthread_mutex_trylock(fork) != 0)
+	tools = (t_tools *)ptr;
+	while (!tools->stop)
 	{
-		timee = get_time() - phil->last_eat - phil->tools->time_to_die;
-		if (phil->tools->stop)
-			return (1);
-		else if (timee > 0)
+		i = -1;
+		while (++i < tools->nb_phil && !tools->stop)
 		{
-			print_msg(phil, MSG_DEAD, 1);
-			return (1);
+			if (get_time() - tools->phils[i].last_eat > tools->time_to_die)
+			{
+				print_msg(tools->phils, MSG_DEAD, 1);
+				tools->stop = 1;
+			}
+			usleep(100);
 		}
-		usleep(100);
 	}
-	print_msg(phil, MSG_FORK, 0);
-	return (0);
+	return (NULL);
 }
