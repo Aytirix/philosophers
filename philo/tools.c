@@ -14,17 +14,17 @@
 
 int	phil_init(int ac, char **av, t_tools *tools)
 {
+	tools->forks = NULL;
+	tools->phils = NULL;
 	if (ac != 5 && ac != 6)
 	{
 		printf("Nombre d'arguments incorrect\n");
-		exit(1);
+		return (3);
 	}
 	tools->nb_phil = ft_atoi(av[1]);
 	tools->time_to_die = ft_atoi(av[2]);
 	tools->time_to_eat = ft_atoi(av[3]);
 	tools->time_to_sleep = ft_atoi(av[4]);
-	tools->forks = NULL;
-	tools->phils = NULL;
 	tools->stop = 0;
 	if (ac == 6)
 		tools->nb_must_eat = ft_atoi(av[5]);

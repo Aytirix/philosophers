@@ -60,7 +60,7 @@ long long			get_time(void);
 int					print_msg(t_phil *phil, char *msg, int dead);
 int					ft_atoi(const char *nptr);
 void				*ft_calloc(size_t nmemb, size_t size);
-void				init_thread(t_tools *tools);
+int					init_thread(t_tools *tools);
 
 // tools.c
 int					phil_init(int ac, char **av, t_tools *tools);

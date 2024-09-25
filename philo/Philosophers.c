@@ -119,7 +119,8 @@ int	main(int ac, char **av)
 	}
 	tools.start = get_time();
 	create_threads(&tools, 0);
-	init_thread(&tools);
+	if (init_thread(&tools))
+		return (1);
 	i = -1;
 	while (!tools.stop)
 		usleep(10000);
