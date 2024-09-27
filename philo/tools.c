@@ -48,15 +48,16 @@ int	phil_create(t_tools *tools)
 	if (!tools->forks)
 		return (1);
 	i = -1;
-	while (++i < tools->nb_phil)
-		if (pthread_mutex_init(&tools->forks[i], NULL) != 0)
-			return (1);
 	tools->phils = ft_calloc(sizeof(t_phil), tools->nb_phil);
 	if (!tools->phils)
 		return (1);
 	i = -1;
 	while (++i < tools->nb_phil)
 	{
+		if (pthread_mutex_init(&tools->forks[i], NULL) != 0
+			|| pthread_mutex_init(&tools->phils[i].m_eat_count, NULL) != 0
+			|| pthread_mutex_init(&tools->phils[i].m_last_eat, NULL) != 0)
+			return (1);
 		tools->phils[i].id = i;
 		tools->phils[i].eat_count = 0;
 		tools->phils[i].last_eat = 0;
@@ -73,6 +74,8 @@ void	phil_free(t_tools *tools)
 	while (i < tools->nb_phil && tools->forks)
 	{
 		pthread_mutex_destroy(&tools->forks[i]);
+		pthread_mutex_destroy(&tools->phils[i].m_eat_count);
+		pthread_mutex_destroy(&tools->phils[i].m_last_eat);
 		i++;
 	}
 	i = 0;
@@ -116,13 +119,16 @@ void	*check_dead(void *ptr)
 		i = -1;
 		while (++i < tools->nb_phil && !tools->stop)
 		{
+			pthread_mutex_lock(&tools->phils[i].m_last_eat);
 			if (get_time() - tools->phils[i].last_eat > tools->time_to_die)
 			{
 				print_msg(tools->phils, MSG_DEAD, 1);
 				tools->stop = 1;
 			}
+			pthread_mutex_unlock(&tools->phils[i].m_last_eat);
 			usleep(100);
 		}
 	}
 	return (NULL);
 }
+

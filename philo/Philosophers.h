@@ -21,11 +21,11 @@
 # include <sys/time.h>
 # include <unistd.h>
 
-# define MSG_FORK 	"%lld %d has taken a fork\n"
-# define MSG_EAT 	"%lld %d is eating\n"
-# define MSG_SLEEP	"%lld %d is sleeping\n"
-# define MSG_THINK	"%lld %d is thinking\n"
-# define MSG_DEAD	"%lld %d died\n"
+# define MSG_FORK "%lld %d has taken a fork\n"
+# define MSG_EAT "%lld %d is eating\n"
+# define MSG_SLEEP "%lld %d is sleeping\n"
+# define MSG_THINK "%lld %d is thinking\n"
+# define MSG_DEAD "%lld %d died\n"
 
 typedef struct s_tools
 {
@@ -49,6 +49,8 @@ typedef struct s_phil
 	int				id;
 	int				eat_count;
 	long long		last_eat;
+	pthread_mutex_t	m_eat_count;
+	pthread_mutex_t	m_last_eat;
 	t_tools			*tools;
 }					t_phil;
 
@@ -68,5 +70,7 @@ int					phil_create(t_tools *tools);
 void				phil_free(t_tools *tools);
 int					ft_usleep(long long time, t_phil *phil);
 void				*check_dead(void *ptr);
+
+int check_stop_program(int val)
 
 #endif

@@ -42,7 +42,7 @@ static void	*phil_life(void *ptr)
 	while (!phil->tools->stop)
 	{
 		print_msg(phil, MSG_THINK, 0);
-		if (phil->tools->stop || choose_fork(phil))
+		if (choose_fork(phil))
 			break ;
 		print_msg(phil, MSG_EAT, 0);
 		phil->last_eat = get_time();
@@ -52,8 +52,6 @@ static void	*phil_life(void *ptr)
 		pthread_mutex_unlock(&phil->tools->forks[phil->id]);
 		pthread_mutex_unlock(&phil->tools->forks[(phil->id + 1)
 			% phil->tools->nb_phil]);
-		if (phil->tools->stop)
-			break ;
 		print_msg(phil, MSG_SLEEP, 0);
 		if (ft_usleep(phil->tools->time_to_sleep, phil))
 			break ;
@@ -74,8 +72,13 @@ void	*check_thread(void *ptr)
 		i = 0;
 		while (i < tools->nb_phil && !tools->stop)
 		{
+			pthread_mutex_lock(&tools->phils[i].m_eat_count);
 			if (tools->phils[i].eat_count < tools->nb_must_eat)
+			{
+				pthread_mutex_unlock(&tools->phils[i].m_eat_count);
 				break ;
+			}
+			pthread_mutex_unlock(&tools->phils[i].m_eat_count);
 			i++;
 		}
 		if (i == tools->nb_phil)

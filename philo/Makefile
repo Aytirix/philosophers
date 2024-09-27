@@ -6,7 +6,7 @@ SRC = Philosophers.c \
 
 OBJ = $(addprefix $(OBJDIR)/,$(SRC:.c=.o))
 CC = gcc
-FLAGS = -g3 -Wall -Wextra -Werror #-fsanitize=address
+FLAGS = -Wall -Wextra -Werror -pthread -g3 #-fsanitize=address
 
 # Colors
 YELLOW = \033[0;33m
