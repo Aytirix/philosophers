@@ -16,6 +16,8 @@ int	phil_init(int ac, char **av, t_tools *tools)
 {
 	tools->forks = NULL;
 	tools->phils = NULL;
+	if (pthread_mutex_init(&tools->print, NULL) != 0)
+		return (1);
 	if (ac != 5 && ac != 6)
 	{
 		printf("Nombre d'arguments incorrect\n");
@@ -25,15 +27,12 @@ int	phil_init(int ac, char **av, t_tools *tools)
 	tools->time_to_die = ft_atoi(av[2]);
 	tools->time_to_eat = ft_atoi(av[3]);
 	tools->time_to_sleep = ft_atoi(av[4]);
-	tools->stop = 0;
 	if (ac == 6)
 		tools->nb_must_eat = ft_atoi(av[5]);
 	if (ac == 6 && tools->nb_must_eat <= 0)
 		return (2);
 	if (ac == 5)
 		tools->nb_must_eat = -1;
-	if (pthread_mutex_init(&tools->print, NULL) != 0)
-		return (1);
 	if (tools->nb_phil <= 0 || tools->time_to_die <= 0
 		|| tools->time_to_eat <= 0 || tools->time_to_sleep <= 0)
 		return (1);
@@ -47,7 +46,6 @@ int	phil_create(t_tools *tools)
 	tools->forks = ft_calloc(sizeof(pthread_mutex_t), tools->nb_phil);
 	if (!tools->forks)
 		return (1);
-	i = -1;
 	tools->phils = ft_calloc(sizeof(t_phil), tools->nb_phil);
 	if (!tools->phils)
 		return (1);
@@ -56,12 +54,34 @@ int	phil_create(t_tools *tools)
 	{
 		if (pthread_mutex_init(&tools->forks[i], NULL) != 0
 			|| pthread_mutex_init(&tools->phils[i].m_eat_count, NULL) != 0
-			|| pthread_mutex_init(&tools->phils[i].m_last_eat, NULL) != 0)
+			|| pthread_mutex_init(&tools->phils[i].m_last_eat, NULL) != 0
+			|| pthread_mutex_init(&tools->phils[i].m_stop, NULL) != 0)
 			return (1);
+		tools->phils[i].stop = 0;
 		tools->phils[i].id = i;
 		tools->phils[i].eat_count = 0;
-		tools->phils[i].last_eat = 0;
+		tools->phils[i].last_eat = get_time();
+		tools->phils[i].fork_left = &tools->forks[i];
+		tools->phils[i].fork_right = &tools->forks[(i + 1) % tools->nb_phil];
 		tools->phils[i].tools = tools;
+	}
+	return (0);
+}
+
+int	init_thread_check(t_tools *tools)
+{
+	if (tools->nb_must_eat != -1 && pthread_create(&tools->check, NULL,
+			check_thread, tools) != 0)
+	{
+		printf("Erreur lors de la création du thread de vérification\n");
+		phil_free(tools);
+		return (1);
+	}
+	if (pthread_create(&tools->check_death, NULL, check_dead, tools) != 0)
+	{
+		printf("Erreur lors de la création du thread de vérification\n");
+		phil_free(tools);
+		return (1);
 	}
 	return (0);
 }
@@ -76,6 +96,7 @@ void	phil_free(t_tools *tools)
 		pthread_mutex_destroy(&tools->forks[i]);
 		pthread_mutex_destroy(&tools->phils[i].m_eat_count);
 		pthread_mutex_destroy(&tools->phils[i].m_last_eat);
+		pthread_mutex_destroy(&tools->phils[i].m_stop);
 		i++;
 	}
 	i = 0;
@@ -86,7 +107,6 @@ void	phil_free(t_tools *tools)
 
 int	ft_usleep(long long time, t_phil *phil)
 {
-	long long	timee;
 	long long	wait;
 	long long	tmp;
 
@@ -94,41 +114,20 @@ int	ft_usleep(long long time, t_phil *phil)
 	tmp = get_time();
 	while (tmp < wait)
 	{
-		timee = tmp - phil->last_eat - phil->tools->time_to_die;
-		if (phil->tools->stop)
-			return (1);
-		else if (timee > 0)
+		pthread_mutex_lock(&phil->m_last_eat);
+		if (tmp - phil->last_eat - phil->tools->time_to_die > 0)
 		{
+			pthread_mutex_unlock(&phil->m_last_eat);
 			print_msg(phil, MSG_DEAD, 1);
 			return (1);
 		}
+		pthread_mutex_unlock(&phil->m_last_eat);
+		pthread_mutex_lock(&phil->m_stop);
+		if (phil->stop)
+			return (pthread_mutex_unlock(&phil->m_stop) + 1);
+		pthread_mutex_unlock(&phil->m_stop);
 		usleep(100);
 		tmp = get_time();
 	}
 	return (0);
 }
-
-void	*check_dead(void *ptr)
-{
-	int		i;
-	t_tools	*tools;
-
-	tools = (t_tools *)ptr;
-	while (!tools->stop)
-	{
-		i = -1;
-		while (++i < tools->nb_phil && !tools->stop)
-		{
-			pthread_mutex_lock(&tools->phils[i].m_last_eat);
-			if (get_time() - tools->phils[i].last_eat > tools->time_to_die)
-			{
-				print_msg(tools->phils, MSG_DEAD, 1);
-				tools->stop = 1;
-			}
-			pthread_mutex_unlock(&tools->phils[i].m_last_eat);
-			usleep(100);
-		}
-	}
-	return (NULL);
-}
-

@@ -31,7 +31,6 @@ typedef struct s_tools
 {
 	int				nb_phil;
 	long long		start;
-	long long		stop;
 	long long		time_to_die;
 	long long		time_to_eat;
 	long long		time_to_sleep;
@@ -46,31 +45,38 @@ typedef struct s_tools
 typedef struct s_phil
 {
 	pthread_t		thread;
+	int				stop;
 	int				id;
 	int				eat_count;
 	long long		last_eat;
+	pthread_mutex_t	m_stop;
 	pthread_mutex_t	m_eat_count;
 	pthread_mutex_t	m_last_eat;
+	pthread_mutex_t	*fork_left;
+	pthread_mutex_t	*fork_right;
+
 	t_tools			*tools;
 }					t_phil;
 
-// Philosophers.c
+// Philosophers_2.c
+int					print_msg(t_phil *phil, char *msg, int dead);
+int					choose_fork(t_phil *phil);
+int					my_fork(t_phil *phil);
+void				*check_dead(void *ptr);
 void				*check_thread(void *ptr);
 
 // mini_lib.c
 long long			get_time(void);
-int					print_msg(t_phil *phil, char *msg, int dead);
 int					ft_atoi(const char *nptr);
 void				*ft_calloc(size_t nmemb, size_t size);
-int					init_thread(t_tools *tools);
+int					init_thread_check(t_tools *tools);
 
 // tools.c
 int					phil_init(int ac, char **av, t_tools *tools);
 int					phil_create(t_tools *tools);
 void				phil_free(t_tools *tools);
 int					ft_usleep(long long time, t_phil *phil);
-void				*check_dead(void *ptr);
 
-int check_stop_program(int val)
+void				*update_death(t_tools *tools);
 
 #endif

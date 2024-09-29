@@ -12,78 +12,30 @@
 
 #include "Philosophers.h"
 
-static int	choose_fork(t_phil *phil)
-{
-	pthread_mutex_t	*left_fork;
-	pthread_mutex_t	*right_fork;
-
-	if (phil->id == phil->tools->nb_phil - 1 && phil->tools->nb_phil % 2 == 0)
-	{
-		right_fork = &phil->tools->forks[phil->id];
-		left_fork = &phil->tools->forks[(phil->id + 1) % phil->tools->nb_phil];
-	}
-	else
-	{
-		right_fork = &phil->tools->forks[(phil->id + 1) % phil->tools->nb_phil];
-		left_fork = &phil->tools->forks[phil->id];
-	}
-	if (pthread_mutex_lock(left_fork) != 0
-		|| pthread_mutex_lock(right_fork) != 0)
-		return (1);
-	return (0);
-}
-
 static void	*phil_life(void *ptr)
 {
 	t_phil	*phil;
 
 	phil = (t_phil *)ptr;
+	pthread_mutex_lock(&phil->m_last_eat);
 	phil->last_eat = get_time();
-	while (!phil->tools->stop)
+	pthread_mutex_unlock(&phil->m_last_eat);
+	pthread_mutex_lock(&phil->m_stop);
+	while (!phil->stop)
 	{
+		pthread_mutex_unlock(&phil->m_stop);
 		print_msg(phil, MSG_THINK, 0);
-		if (choose_fork(phil))
-			break ;
-		print_msg(phil, MSG_EAT, 0);
-		phil->last_eat = get_time();
-		if (ft_usleep(phil->tools->time_to_eat, phil))
-			break ;
+		if (my_fork(phil))
+			return (NULL);
+		pthread_mutex_lock(&phil->m_eat_count);
 		phil->eat_count++;
-		pthread_mutex_unlock(&phil->tools->forks[phil->id]);
-		pthread_mutex_unlock(&phil->tools->forks[(phil->id + 1)
-			% phil->tools->nb_phil]);
+		pthread_mutex_unlock(&phil->m_eat_count);
 		print_msg(phil, MSG_SLEEP, 0);
 		if (ft_usleep(phil->tools->time_to_sleep, phil))
-			break ;
+			return (NULL);
+		pthread_mutex_lock(&phil->m_stop);
 	}
-	return (NULL);
-}
-
-void	*check_thread(void *ptr)
-
-{
-	t_tools	*tools;
-	int		i;
-
-	tools = (t_tools *)ptr;
-	while (!tools->stop)
-	{
-		usleep(100);
-		i = 0;
-		while (i < tools->nb_phil && !tools->stop)
-		{
-			pthread_mutex_lock(&tools->phils[i].m_eat_count);
-			if (tools->phils[i].eat_count < tools->nb_must_eat)
-			{
-				pthread_mutex_unlock(&tools->phils[i].m_eat_count);
-				break ;
-			}
-			pthread_mutex_unlock(&tools->phils[i].m_eat_count);
-			i++;
-		}
-		if (i == tools->nb_phil)
-			tools->stop = 1;
-	}
+	pthread_mutex_unlock(&phil->m_stop);
 	return (NULL);
 }
 
@@ -122,13 +74,11 @@ int	main(int ac, char **av)
 	}
 	tools.start = get_time();
 	create_threads(&tools, 0);
-	if (init_thread(&tools))
+	if (init_thread_check(&tools))
 		return (1);
 	i = -1;
-	while (!tools.stop)
-		usleep(10000);
 	while (++i < tools.nb_phil)
-		pthread_detach(tools.phils[i].thread);
+		pthread_join(tools.phils[i].thread, NULL);
 	if (tools.nb_must_eat > 0)
 		pthread_join(tools.check, NULL);
 	pthread_join(tools.check_death, NULL);

@@ -20,21 +20,6 @@ long long	get_time(void)
 	return ((tv.tv_sec * 1000) + (tv.tv_usec / 1000));
 }
 
-int	print_msg(t_phil *phil, char *msg, int dead)
-{
-	pthread_mutex_lock(&phil->tools->print);
-	if (phil->tools->stop)
-	{
-		pthread_mutex_unlock(&phil->tools->print);
-		return (1);
-	}
-	if (dead)
-		phil->tools->stop = 1;
-	printf(msg, get_time() - phil->tools->start, phil->id + 1);
-	pthread_mutex_unlock(&phil->tools->print);
-	return (0);
-}
-
 int	ft_atoi(const char *nptr)
 {
 	int			i;
@@ -76,20 +61,23 @@ void	*ft_calloc(size_t nmemb, size_t size)
 	return (s);
 }
 
-int	init_thread(t_tools *tools)
+void	*update_death(t_tools *tools)
 {
-	if (tools->nb_must_eat != -1 && pthread_create(&tools->check, NULL,
-			check_thread, tools) != 0)
+	int	i;
+
+	i = -1;
+	pthread_mutex_lock(&tools->phils[0].m_stop);
+	if (tools->phils[0].stop)
 	{
-		printf("Erreur lors de la création du thread de vérification\n");
-		phil_free(tools);
-		return (1);
+		pthread_mutex_unlock(&tools->phils[0].m_stop);
+		return (NULL);
 	}
-	if (pthread_create(&tools->check_death, NULL, check_dead, tools) != 0)
+	pthread_mutex_unlock(&tools->phils[0].m_stop);
+	while (++i < tools->nb_phil)
 	{
-		printf("Erreur lors de la création du thread de vérification\n");
-		phil_free(tools);
-		return (1);
+		pthread_mutex_lock(&tools->phils[i].m_stop);
+		tools->phils[i].stop = 1;
+		pthread_mutex_unlock(&tools->phils[i].m_stop);
 	}
-	return (0);
+	return (NULL);
 }

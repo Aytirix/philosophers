@@ -1,6 +1,7 @@
 NAME = philo
 OBJDIR = objets
 SRC = Philosophers.c \
+	Philosophers_2.c \
 	mini_lib.c \
       tools.c
 
