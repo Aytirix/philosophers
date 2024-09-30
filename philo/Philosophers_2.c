@@ -39,7 +39,7 @@ int	choose_fork(t_phil *phil)
 	pthread_mutex_t	*left_fork;
 	pthread_mutex_t	*right_fork;
 
-	if (phil->id == phil->tools->nb_phil - 1 && phil->tools->nb_phil % 2 == 0)
+	if (phil->id == phil->tools->nb_phil - 1)
 	{
 		right_fork = phil->fork_left;
 		left_fork = phil->fork_right;
