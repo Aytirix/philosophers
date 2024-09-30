@@ -36,24 +36,12 @@ int	print_msg(t_phil *phil, char *msg, int dead)
 
 int	choose_fork(t_phil *phil)
 {
-	pthread_mutex_t	*left_fork;
-	pthread_mutex_t	*right_fork;
-
-	if (phil->id == phil->tools->nb_phil - 1)
-	{
-		right_fork = phil->fork_left;
-		left_fork = phil->fork_right;
-	}
-	else
-	{
-		right_fork = phil->fork_right;
-		left_fork = phil->fork_left;
-	}
-	if (pthread_mutex_lock(left_fork) != 0)
+	if (pthread_mutex_lock(phil->fork_right) != 0)
 		return (1);
-	if (left_fork == right_fork || pthread_mutex_lock(right_fork) != 0)
+	if (phil->fork_left == phil->fork_right
+		|| pthread_mutex_lock(phil->fork_left) != 0)
 	{
-		pthread_mutex_unlock(left_fork);
+		pthread_mutex_unlock(phil->fork_right);
 		return (1);
 	}
 	return (0);
@@ -84,7 +72,7 @@ void	*check_dead(void *ptr)
 	static int	i = -1;
 
 	tools = (t_tools *)ptr;
-	while (1 && (usleep(100) + 2))
+	while (1 && (usleep(100) || 1))
 	{
 		if (++i >= tools->nb_phil)
 			i = 0;

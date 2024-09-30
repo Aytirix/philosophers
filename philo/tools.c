@@ -39,6 +39,31 @@ int	phil_init(int ac, char **av, t_tools *tools)
 	return (phil_create(tools));
 }
 
+static int	init_struct_phil(t_tools *tools, int i)
+{
+	if (pthread_mutex_init(&tools->forks[i], NULL) != 0
+		|| pthread_mutex_init(&tools->phils[i].m_eat_count, NULL) != 0
+		|| pthread_mutex_init(&tools->phils[i].m_last_eat, NULL) != 0
+		|| pthread_mutex_init(&tools->phils[i].m_stop, NULL) != 0)
+		return (1);
+	tools->phils[i].stop = 0;
+	tools->phils[i].id = i;
+	tools->phils[i].eat_count = 0;
+	tools->phils[i].last_eat = get_time();
+	if (i % 2 == 0)
+	{
+		tools->phils[i].fork_left = &tools->forks[(i + 1) % tools->nb_phil];
+		tools->phils[i].fork_right = &tools->forks[i];
+	}
+	else
+	{
+		tools->phils[i].fork_left = &tools->forks[i];
+		tools->phils[i].fork_right = &tools->forks[(i + 1) % tools->nb_phil];
+	}
+	tools->phils[i].tools = tools;
+	return (0);
+}
+
 int	phil_create(t_tools *tools)
 {
 	int	i;
@@ -51,20 +76,8 @@ int	phil_create(t_tools *tools)
 		return (1);
 	i = -1;
 	while (++i < tools->nb_phil)
-	{
-		if (pthread_mutex_init(&tools->forks[i], NULL) != 0
-			|| pthread_mutex_init(&tools->phils[i].m_eat_count, NULL) != 0
-			|| pthread_mutex_init(&tools->phils[i].m_last_eat, NULL) != 0
-			|| pthread_mutex_init(&tools->phils[i].m_stop, NULL) != 0)
+		if (init_struct_phil(tools, i))
 			return (1);
-		tools->phils[i].stop = 0;
-		tools->phils[i].id = i;
-		tools->phils[i].eat_count = 0;
-		tools->phils[i].last_eat = get_time();
-		tools->phils[i].fork_left = &tools->forks[i];
-		tools->phils[i].fork_right = &tools->forks[(i + 1) % tools->nb_phil];
-		tools->phils[i].tools = tools;
-	}
 	return (0);
 }
 
@@ -103,31 +116,4 @@ void	phil_free(t_tools *tools)
 	free(tools->forks);
 	free(tools->phils);
 	pthread_mutex_destroy(&tools->print);
-}
-
-int	ft_usleep(long long time, t_phil *phil)
-{
-	long long	wait;
-	long long	tmp;
-
-	wait = get_time() + time;
-	tmp = get_time();
-	while (tmp < wait)
-	{
-		pthread_mutex_lock(&phil->m_last_eat);
-		if (tmp - phil->last_eat - phil->tools->time_to_die > 0)
-		{
-			pthread_mutex_unlock(&phil->m_last_eat);
-			print_msg(phil, MSG_DEAD, 1);
-			return (1);
-		}
-		pthread_mutex_unlock(&phil->m_last_eat);
-		pthread_mutex_lock(&phil->m_stop);
-		if (phil->stop)
-			return (pthread_mutex_unlock(&phil->m_stop) + 1);
-		pthread_mutex_unlock(&phil->m_stop);
-		usleep(100);
-		tmp = get_time();
-	}
-	return (0);
 }

@@ -12,6 +12,33 @@
 
 #include "Philosophers.h"
 
+int	ft_usleep(long long time, t_phil *phil)
+{
+	long long	wait;
+	long long	tmp;
+
+	wait = get_time() + time;
+	tmp = get_time();
+	while (tmp < wait)
+	{
+		pthread_mutex_lock(&phil->m_last_eat);
+		if (tmp - phil->last_eat - phil->tools->time_to_die > 0)
+		{
+			pthread_mutex_unlock(&phil->m_last_eat);
+			print_msg(phil, MSG_DEAD, 1);
+			return (1);
+		}
+		pthread_mutex_unlock(&phil->m_last_eat);
+		pthread_mutex_lock(&phil->m_stop);
+		if (phil->stop)
+			return (pthread_mutex_unlock(&phil->m_stop) + 1);
+		pthread_mutex_unlock(&phil->m_stop);
+		usleep(100);
+		tmp = get_time();
+	}
+	return (0);
+}
+
 static void	*phil_life(void *ptr)
 {
 	t_phil	*phil;

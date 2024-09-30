@@ -58,6 +58,9 @@ typedef struct s_phil
 	t_tools			*tools;
 }					t_phil;
 
+// Philosophers.c
+int					ft_usleep(long long time, t_phil *phil);
+
 // Philosophers_2.c
 int					print_msg(t_phil *phil, char *msg, int dead);
 int					choose_fork(t_phil *phil);
@@ -75,7 +78,6 @@ int					init_thread_check(t_tools *tools);
 int					phil_init(int ac, char **av, t_tools *tools);
 int					phil_create(t_tools *tools);
 void				phil_free(t_tools *tools);
-int					ft_usleep(long long time, t_phil *phil);
 
 void				*update_death(t_tools *tools);
 
