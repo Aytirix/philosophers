@@ -79,6 +79,7 @@ static void	create_threads(t_tools *tools, int tmp)
 			return ;
 		}
 		i += 2;
+		usleep(100);
 	}
 	if (tmp == 0)
 		create_threads(tools, 1);
