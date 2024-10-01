@@ -44,14 +44,13 @@ static void	*phil_life(void *ptr)
 	t_phil	*phil;
 
 	phil = (t_phil *)ptr;
-	pthread_mutex_lock(&phil->m_last_eat);
-	phil->last_eat = get_time();
-	pthread_mutex_unlock(&phil->m_last_eat);
 	pthread_mutex_lock(&phil->m_stop);
 	while (!phil->stop)
 	{
 		pthread_mutex_unlock(&phil->m_stop);
 		print_msg(phil, MSG_THINK, 0);
+		if (phil->id % 2 == 0)
+			usleep(150);
 		if (my_fork(phil))
 			return (NULL);
 		pthread_mutex_lock(&phil->m_eat_count);
@@ -79,7 +78,6 @@ static void	create_threads(t_tools *tools, int tmp)
 			printf("Erreur lors de la création des threads\n");
 			return ;
 		}
-		usleep(100);
 		i += 2;
 	}
 	if (tmp == 0)
