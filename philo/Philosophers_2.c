@@ -38,12 +38,14 @@ int	choose_fork(t_phil *phil)
 {
 	if (pthread_mutex_lock(phil->fork_right) != 0)
 		return (1);
+	print_msg(phil, MSG_FORK, 0);
 	if (phil->fork_left == phil->fork_right
 		|| pthread_mutex_lock(phil->fork_left) != 0)
 	{
 		pthread_mutex_unlock(phil->fork_right);
 		return (1);
 	}
+	print_msg(phil, MSG_FORK, 0);
 	return (0);
 }
 
